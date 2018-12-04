@@ -1,0 +1,136 @@
+---
+title: "Meteorite"
+author: "elaine"
+date: "December 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+The map below visualize all meteorite landings from 1986 through 2016 recorded by the [The Meteoritical Society](http://www.meteoriticalsociety.org/). We only use the data after 1986 since the data before that year was not recorded correctly. We also remove values that did not have accurate latitude and longitudinal coordinates.
+
+```{r, fig.width=9.5, fig.height=5.5, fig.align='center', message=FALSE}
+library(leaflet)
+library(dplyr)
+library(Hmisc)
+
+options("scipen"=100, "digits"=4)
+
+meteorites <- read.csv("meteorite-landings.csv")
+df <- meteorites[,c(1,5,7,8,9)]
+
+keep <- complete.cases(df)
+df <- df[keep,]
+df <- subset(df, year >= 1986 & year <=2016)
+df <- subset(df, reclong <= 180 & reclong >= -180 & (reclat != 0 | reclong != 0))
+df <- df[order(df$mass, decreasing = TRUE),]
+
+map_meteorites <- df
+names(map_meteorites) <- c("name","mass","year","lat","lng")
+
+df.category <- mutate(map_meteorites,size = cut2(mass, cuts = c(100,10000)))
+df.category$size <- factor(df.category$size, labels = c("Small","Medium","Large"))
+sMeteo <- df.category[df.category$size == "Small",]
+mMeteo <- df.category[df.category$size == "Medium",]
+hMeteo <- df.category[df.category$size == "Large",]
+
+leaflet() %>%
+addTiles(options = providerTileOptions(minZoom = 2, maxZoom = 12)) %>%
+setView(lat=38.350033, lng=-98.6500523, 4) %>%
+addCircles(weight = 1,
+           lat = sMeteo$lat,
+           lng = sMeteo$lng,
+           group='Small Meteorites',
+           radius = sqrt(sMeteo$mass)*400,
+           popup = paste("Name:",sMeteo$name,"<br>",
+                         "Year Landed:",sMeteo$year,"<br>",
+                         "Mass (in grams):",sMeteo$mass)) %>%
+addCircles(weight = 1,
+           lat = mMeteo$lat,
+           lng = mMeteo$lng,
+           group='Medium Meteorites',
+           radius = sqrt(mMeteo$mass)*400,
+           popup = paste("Name:",mMeteo$name,"<br>",
+                         "Year Landed:",mMeteo$year,"<br>",
+                         "Mass (in grams):",mMeteo$mass)) %>%
+addCircles(weight = 1,
+           lat = hMeteo$lat,
+           lng = hMeteo$lng,
+           group='Huge Meteorites',
+           radius = sqrt(hMeteo$mass)*400,
+           popup = paste("Name:",hMeteo$name,"<br>",
+                         "Year Landed:",hMeteo$year,"<br>",
+                         "Mass ( in grams):",hMeteo$mass)) %>%
+addLayersControl(
+          overlayGroups =c('Small Meteorites',
+                           'Medium Meteorites',
+                           'Huge Meteorites'),
+          options = layersControlOptions(collapsed=FALSE)
+          )
+```
+<br>
+<center>
+####code. 
+</center>
+
+
+```{r, eval=FALSE, message=FALSE, echo=TRUE}
+library(leaflet)
+library(tidyverse)
+library(Hmisc)
+
+
+meteorites <- read.csv("meteorite-landings.csv")
+df <- meteorites[,c(1,5,7,8,9)]
+
+keep <- complete.cases(df)
+df <- df[keep,]
+df <- subset(df, year >= 1986 & year <=2016)
+df <- subset(df, reclong <= 180 & reclong >= -180 & (reclat != 0 | reclong != 0))
+df <- df[order(df$mass, decreasing = TRUE),]
+
+map_meteorites <- df
+names(map_meteorites) <- c("name","mass","year","lat","lng")
+
+df.category <- mutate(map_meteorites,size = cut2(mass, cuts = c(100,10000)))
+df.category$size <- factor(df.category$size, labels = c("Small","Medium","Large"))
+sMeteo <- df.category[df.category$size == "Small",]
+mMeteo <- df.category[df.category$size == "Medium",]
+hMeteo <- df.category[df.category$size == "Large",]
+
+leaflet() %>%
+addTiles(options = providerTileOptions(minZoom = 2, maxZoom = 12)) %>%
+setView(lat=38.350033, lng=-98.6500523, 4) %>%
+addCircles(weight = 1,
+           lat = sMeteo$lat,
+           lng = sMeteo$lng,
+           group='Small Meteorites',
+           radius = sqrt(sMeteo$mass)*400,
+           popup = paste("Name:",sMeteo$name,"<br>",
+                         "Year Landed:",sMeteo$year,"<br>",
+                         "Mass ( in grams):",sMeteo$mass)) %>%
+addCircles(weight = 1,
+           lat = mMeteo$lat,
+           lng = mMeteo$lng,
+           group='Medium Meteorites',
+           radius = sqrt(mMeteo$mass)*400,
+           popup = paste("Name:",mMeteo$name,"<br>",
+                         "Year Landed:",mMeteo$year,"<br>",
+                         "Mass (in grams):",mMeteo$mass)) %>%
+addCircles(weight = 1,
+           lat = hMeteo$lat,
+           lng = hMeteo$lng,
+           group='Huge Meteorites',
+           radius = sqrt(hMeteo$mass)*400,
+           popup = paste("Name:",hMeteo$name,"<br>",
+                         "Year Landed:",hMeteo$year,"<br>",
+                         "Mass (in grams):",hMeteo$mass)) %>%
+addLayersControl(
+          overlayGroups =c('Small Meteorites',
+                           'Medium Meteorites',
+                           'Huge Meteorites'),
+          options = layersControlOptions(collapsed=FALSE))
+```
